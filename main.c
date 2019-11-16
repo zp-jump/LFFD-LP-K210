@@ -156,13 +156,25 @@ int main()
     printf("\nmodel run OK\n");
 
     // 提取预测框
-    lpbox_head_t lpbox;
-    printf("\nLPbox run start\n");
-    get_lpbox(&task, &lpbox, 0.5, 0.5);
-    printf("\nLPbox run OK\n");
+    // lpbox_head_t lpbox;
+    // printf("\nLPbox run start\n");
+    // get_lpbox(&task, &lpbox, 0.5, 0.5);
+    // printf("\nLPbox run OK\n");
 
-    printf("bbox num：%d\n", lpbox.num);
+    // printf("bbox num：%d\n", lpbox.num);
 
+    // 输出运算结果
+    float *output;
+    size_t size;
+
+    kpu_get_output(&task, 0, &output, &size);
+    size /= 4;
+    printf("\noutput size: %ld\n", size);
+    printf("[");
+    for (size_t i=0; i < size; i++) {
+        printf("%f, ", *(output + i));
+    }
+    printf("]\n");
 
     /* display pic*/
     rgb888_to_lcd(gImage_image, lcd_gram, 320, 240);
