@@ -170,9 +170,9 @@ int main()
     kpu_get_output(&task, 0, &output, &size);
     size /= 4;
     printf("\noutput size: %ld\n", size);
-    printf("[");
+    printf("[\n");
     for (size_t i=0; i < size; i++) {
-        printf("%f, ", *(output + i));
+        printf("%f,\n", *(output + i));
     }
     printf("]\n");
 
