@@ -19,7 +19,7 @@ extern const unsigned char gImage_image[] __attribute__((aligned(128)));
 
 // static uint16_t lcd_gram[320 * 240] __attribute__((aligned(32)));
 
-#define LPBOX_KMODEL_SIZE (210000)
+#define LPBOX_KMODEL_SIZE (556864)
 uint8_t* lpbox_model_data;
 
 kpu_model_context_t task;
@@ -47,8 +47,8 @@ int main()
     printf("flash init\n");
     w25qxx_init(3, 0);
     w25qxx_enable_quad_mode();
-    lpbox_model_data = (uint8_t*)iomem_malloc(LPBOX_KMODEL_SIZE);
-    w25qxx_read_data(0xD00000, lpbox_model_data, LPBOX_KMODEL_SIZE, W25QXX_QUAD_FAST);
+    lpbox_model_data = (uint8_t*)malloc(LPBOX_KMODEL_SIZE);
+    w25qxx_read_data(0xA00000, lpbox_model_data, LPBOX_KMODEL_SIZE, W25QXX_QUAD_FAST);
 
     sysctl_enable_irq();
 
@@ -77,7 +77,9 @@ int main()
     float *output;
     size_t size;
 
-    kpu_get_output(&task, 0, &output, &size);
+    
+
+    kpu_get_output(&task, 3, &output, &size);
     size /= 4;
     printf("\noutput size: %ld\n", size);
     printf("[\n");
