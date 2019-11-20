@@ -16,10 +16,10 @@ const size_t rf_stride0 = 16 , rf_stride1 = 32;
 const size_t rf_start0  = 15 , rf_start1  = 31;
 const size_t rf_size0   = 128, rf_size1   = 256;
 
-lpbox_t *new_lpbox(float x1, float y1, float x2, float y2, float score, lpbox_t *next)
+bbox_t *new_bbox(float x1, float y1, float x2, float y2, float score, bbox_t *next)
 {
-    lpbox_t *new;
-    new = (lpbox_t *)malloc(sizeof(lpbox_t));
+    bbox_t *new;
+    new = (bbox_t *)malloc(sizeof(bbox_t));
     new->x1 = x1;
     new->x2 = x2;
     new->y1 = y1;
@@ -29,20 +29,20 @@ lpbox_t *new_lpbox(float x1, float y1, float x2, float y2, float score, lpbox_t 
     return new;
 }
 
-void free_lpbox(lpbox_t *node)
+void free_bbox(bbox_t *bbox)
 {
-    free(node);
+    free(bbox);
 }
 
-void push_lpbox(lpbox_head_t *lpbox, lpbox_t *next)
+void push_bbox(bbox_head_t *bboxes, bbox_t *next)
 {
-    lpbox_t *tmp = lpbox->box;
+    bbox_t *tmp = bboxes->box;
 
-    lpbox->num += 1;
+    bboxes->num += 1;
 
     if (tmp == NULL || tmp->score <= next->score) {
-        next->next = lpbox->box;
-        lpbox->box = next;
+        next->next = bboxes->box;
+        bboxes->box = next;
         return;
     }
 
@@ -56,21 +56,21 @@ void push_lpbox(lpbox_head_t *lpbox, lpbox_t *next)
     tmp->next = next;
 }
 
-void delete_lpbox(lpbox_head_t *lpbox, lpbox_t *node)
+void delete_box(bbox_head_t *bboxes, bbox_t *node)
 {
-    lpbox_t *tmp = lpbox->box;
+    bbox_t *tmp = bboxes->box;
 
     if (tmp == node) {
-        lpbox->box = tmp->next;
-        free_lpbox(node);
-        lpbox->num -= 1;
+        bboxes->box = tmp->next;
+        free_bbox(node);
+        bboxes->num -= 1;
         node = NULL;
     } else {
         while (tmp->next != NULL) {
             if (tmp->next == node) {
                 tmp->next = node->next;
-                free_lpbox(node);
-                lpbox->num -= 1;
+                free_bbox(node);
+                bboxes->num -= 1;
                 node = NULL;
                 break;
             }
@@ -79,12 +79,12 @@ void delete_lpbox(lpbox_head_t *lpbox, lpbox_t *node)
     }
 }
 
-void free_all_lpbox(lpbox_head_t *lpbox)
+void free_all_bboxes(bbox_head_t *bboxes)
 {
-    for (lpbox_t* tmp = lpbox->box; tmp != NULL; tmp = tmp->next)
-        free_lpbox(tmp);
-    lpbox->box = NULL;
-    lpbox->num = 0;
+    for (bbox_t* tmp = bboxes->box; tmp != NULL; tmp = tmp->next)
+        free_bbox(tmp);
+    bboxes->box = NULL;
+    bboxes->num = 0;
 }
 
 /*
@@ -108,7 +108,7 @@ uint get_bbox(float        *score_layer,
               const size_t  rf_start,
               const size_t  rf_size,
               float         score_threshold,
-              lpbox_head_t *lpbox)
+              bbox_head_t  *bboxes)
 {
     float score, x1, x2, y1, y2;
     uint layer_size = layer_w * layer_h;
@@ -122,8 +122,8 @@ uint get_bbox(float        *score_layer,
                 x2 = (rf_start + w * rf_stride) + (*(bbox_layer + 3 * layer_size + h * layer_w + w)) * rf_size;
                 y2 = (rf_start + h * rf_stride) + (*(bbox_layer + 4 * layer_size + h * layer_w + w)) * rf_size;
         
-                lpbox_t *next = new_lpbox(x1, y1, x2, y2, score, NULL);
-                push_lpbox(lpbox, next);
+                bbox_t *next = new_bbox(x1, y1, x2, y2, score, NULL);
+                push_bbox(bboxes, next);
             }
         }
     }
@@ -136,12 +136,12 @@ uint get_lpbox(
     float        *bbox_layer0, 
     float        *score_layer1,
     float        *bbox_layer1, 
-    lpbox_head_t *lpbox, 
+    bbox_head_t  *lpbox, 
     float         score_threshold, 
     float         nms_value)
 {
     // float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
-    free_all_lpbox(lpbox);
+    free_all_bboxes(lpbox);
 
     // 提取模型推理结果
     // size_t score_layer0_size;

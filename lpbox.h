@@ -1,36 +1,45 @@
+/**
+ * 19/11/20 重新设计 API
+ * TODO:
+ *  [] 重构 API 添加 lpbox_t 类。
+ *  [] 测试程序
+ * 注意：
+ *  由于未知原因，模型输出指针无法正常传入函数，请参考 Dome 重构代码。
+ */
+
 #ifndef _LPBOX_H_
 #define _LPBOX_H_
 
 #include <kpu.h>
 
-typedef struct LPBOX 
-{
+typedef struct BBOX {
     float         x1;
     float         y1;
     float         x2;
     float         y2;
     float         score;
-    struct LPBOX *next;
-} lpbox_t;
+    struct BBOX *next;
+} bbox_t;
 
-typedef struct
-{
+typedef struct {
     uint          num; // 预测框数量
-    struct LPBOX *box; 
-} lpbox_head_t;
+    struct BBOX *box; 
+} bbox_head_t;
 
-lpbox_t* new_lpbox(float x1, float y1, float x2, float y2, float score, lpbox_t* next);
-void free_lpbox(lpbox_t* node);
-void push_lpbox(lpbox_head_t* lpbox, lpbox_t* next);
-void delete_lpbox(lpbox_head_t* lpbox, lpbox_t* node);
-void free_all_lpbox(lpbox_head_t* lpbox);
+
+
+bbox_t* new_bbox(float x1, float y1, float x2, float y2, float score, bbox_t* next);
+void free_bbox(bbox_t *bbox);
+void push_bbox(bbox_head_t *bboxes, bbox_t* next);
+void delete_bbox(bbox_head_t *bboxes, bbox_t* node);
+void free_all_bboxes(bbox_head_t *bboxes);
 
 uint get_lpbox(
     float        *score_layer0,
     float        *bbox_layer0, 
     float        *score_layer1,
     float        *bbox_layer1, 
-    lpbox_head_t *lpbox, 
+    bbox_head_t *lpbox, 
     float         score_threshold, 
     float         nms_value);
 

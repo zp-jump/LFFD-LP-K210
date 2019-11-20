@@ -28,10 +28,9 @@ kpu_model_context_t task;
 
 volatile uint8_t g_ai_done_flag;
 
-static int ai_done(void* &task)
+static void ai_done(void* arg)
 {
     g_ai_done_flag = 1;
-    return 0;
 }
 
 int main()
@@ -69,47 +68,70 @@ int main()
         ;
     printf("\nmodel run OK\n");
 
-    // 输出运算结果
-    // float *output;
-    // size_t size;
-
-    // kpu_get_output(&task, 0, &output, &size);
-    // size /= 4;
-    // printf("\noutput size: %ld\n", size);
-    // printf("[");
-    // for (size_t i=0; i < size; i++) {
-    //     if (i % 5 == 0) {
-    //         printf("\n");
-    //     }
-    //     printf("%f,", *(output + i));
-    // }
-    // printf("]\n");
-
     float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
 
-    // 提取模型推理结果
+    // // 提取模型推理结果
     size_t score_layer0_size;
     kpu_get_output(&task, 0, &score_layer0, &score_layer0_size);
-    printf("\nscore_layer0_size: %ld\n", score_layer0_size/4);
+    score_layer0_size /= 4;
+    printf("\nscore_layer0_size: %ld\n", score_layer0_size);
+    printf("[");
+    for (size_t i=0; i < score_layer0_size; i++) {
+        if (i % 5 == 0) {
+            printf("\n");
+        }
+        printf("%f,", *(score_layer0 + i));
+    }
+    printf("]\n");
+
     size_t bbox_layer0_size;
     kpu_get_output(&task, 1, &bbox_layer0, &bbox_layer0_size);
-    printf("bbox_layer0_size: %ld\n", bbox_layer0_size/4);
+    bbox_layer0_size /= 4;
+    printf("bbox_layer0_size: %ld\n", bbox_layer0_size);
+    printf("[");
+    for (size_t i=0; i < bbox_layer0_size; i++) {
+        if (i % 5 == 0) {
+            printf("\n");
+        }
+        printf("%f,", *(bbox_layer0 + i));
+    }
+    printf("]\n");
+
     size_t bbox_layer1_size;
     kpu_get_output(&task, 2, &bbox_layer1, &bbox_layer1_size);
-    printf("bbox_layer1_size: %ld\n", bbox_layer1_size / 4);
+    bbox_layer1_size /= 4;
+    printf("bbox_layer1_size: %ld\n", bbox_layer1_size);
+    printf("[");
+    for (size_t i = 0; i < bbox_layer1_size; i++) {
+        if (i % 5 == 0) {
+            printf("\n");
+        }
+        printf("%f,", *(bbox_layer1 + i));
+    }
+    printf("]\n");
+
     size_t score_layer1_size;
     kpu_get_output(&task, 3, &score_layer1, &score_layer1_size);
-    printf("score_layer1_size: %ld\n", score_layer1_size / 4);
+    score_layer1_size /= 4;
+    printf("score_layer1_size: %ld\n", score_layer1_size);
+    printf("[");
+    for (size_t i = 0; i < score_layer1_size; i++) {
+        if (i % 5 == 0) {
+            printf("\n");
+        }
+        printf("%f,", *(score_layer1 + i));
+    }
+    printf("]\n");
 
     // 提取预测框
-    lpbox_head_t lpbox;
+    bbox_head_t lpbox;
     printf("\nLPbox run start\n");
 
-    get_lpbox(score_layer0, bbox_layer0, score_layer1, bbox_layer1, &lpbox, 0.9, 0.5);
+    // get_lpbox(score_layer0, bbox_layer0, score_layer1, bbox_layer1, &lpbox, 0.9, 0.5);
     
     printf("\nLPbox run OK\n");
 
-    printf("bbox num：%d\n", lpbox.num);
+    // printf("bbox num：%d\n", lpbox.num);
 
     printf("\nend\n");
 
