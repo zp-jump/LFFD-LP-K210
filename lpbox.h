@@ -25,6 +25,13 @@ void push_lpbox(lpbox_head_t* lpbox, lpbox_t* next);
 void delete_lpbox(lpbox_head_t* lpbox, lpbox_t* node);
 void free_all_lpbox(lpbox_head_t* lpbox);
 
-uint get_lpbox(kpu_model_context_t* ctx, lpbox_head_t* lpbox, float score_threshold, float nms_value);
+uint get_lpbox(
+    float        *score_layer0,
+    float        *bbox_layer0, 
+    float        *score_layer1,
+    float        *bbox_layer1, 
+    lpbox_head_t *lpbox, 
+    float         score_threshold, 
+    float         nms_value);
 
 #endif /*_LPBOX_H_*/

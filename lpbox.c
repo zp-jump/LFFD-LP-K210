@@ -131,15 +131,22 @@ uint get_bbox(float        *score_layer,
 }
 
 
-uint get_lpbox(kpu_model_context_t *ctx, lpbox_head_t *lpbox, float score_threshold, float nms_value)
+uint get_lpbox(
+    float        *score_layer0,
+    float        *bbox_layer0, 
+    float        *score_layer1,
+    float        *bbox_layer1, 
+    lpbox_head_t *lpbox, 
+    float         score_threshold, 
+    float         nms_value)
 {
-    float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
+    // float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
     free_all_lpbox(lpbox);
 
     // 提取模型推理结果
-    size_t score_layer0_size;
-    kpu_get_output(ctx, 0, &score_layer0, &score_layer0_size);
-    printf("\nscore_layer0_size: %ld\n", score_layer0_size/4);
+    // size_t score_layer0_size;
+    // kpu_get_output(ctx, 0, &score_layer0, &score_layer0_size);
+    // printf("\nscore_layer0_size: %ld\n", score_layer0_size/4);
     printf("[\n");
     for (uint i=0; i < 2; i++) {
         printf("[\n");
@@ -153,9 +160,9 @@ uint get_lpbox(kpu_model_context_t *ctx, lpbox_head_t *lpbox, float score_thresh
         printf("],\n");
     }
     printf("]\n");
-    size_t bbox_layer0_size;
-    kpu_get_output(ctx, 1, &bbox_layer0, &bbox_layer0_size);
-    printf("bbox_layer0_size: %ld\n", bbox_layer0_size/4);    
+    // size_t bbox_layer0_size;
+    // kpu_get_output(ctx, 1, &bbox_layer0, &bbox_layer0_size);
+    // printf("bbox_layer0_size: %ld\n", bbox_layer0_size/4);    
     printf("[\n");
     for (uint i = 0; i < 4; i++) {
         printf("[\n");
@@ -169,12 +176,12 @@ uint get_lpbox(kpu_model_context_t *ctx, lpbox_head_t *lpbox, float score_thresh
         printf("],\n");
     }
     printf("]\n");
-    size_t bbox_layer1_size;
-    kpu_get_output(ctx, 2, &bbox_layer1, &bbox_layer1_size);
-    printf("bbox_layer1_size: %ld\n", bbox_layer1_size/4);
-    size_t score_layer1_size;
-    kpu_get_output(ctx, 3, &score_layer1, &score_layer1_size);
-    printf("score_layer1_size: %ld\n", score_layer1_size/4);
+    // size_t bbox_layer1_size;
+    // kpu_get_output(ctx, 2, &bbox_layer1, &bbox_layer1_size);
+    // printf("bbox_layer1_size: %ld\n", bbox_layer1_size/4);
+    // size_t score_layer1_size;
+    // kpu_get_output(ctx, 3, &score_layer1, &score_layer1_size);
+    // printf("score_layer1_size: %ld\n", score_layer1_size/4);
 
     // 提取预测框
     get_bbox(score_layer0, bbox_layer0, layer0_w, layer0_h,
