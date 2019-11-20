@@ -74,25 +74,26 @@ int main()
         ;
     printf("\nmodel run OK\n");
 
-    float *output;
-    size_t size;
+    // 提取预测框
+    lpbox_head_t lpbox;
+    printf("\nLPbox run start\n");
+    get_lpbox(&task, &lpbox, 0.5, 0.5);
+    printf("\nLPbox run OK\n");
 
-    
+    printf("bbox num：%d\n", lpbox.num);
 
-    kpu_get_output(&task, 3, &output, &size);
-    size /= 4;
-    printf("\noutput size: %ld\n", size);
-    printf("[\n");
-    for (size_t i=0; i < size; i++) {
-        printf("%f,\n", *(output + i));
-    }
-    printf("\n\n");
+    // 输出运算结果
+    // float *output;
+    // size_t size;
 
-    // float add_out;
-    // for (size_t i=0; i < 16; i++) {
-    //     add_out = *(input + i) + *(input + i);
-    //     printf("%f -> %f\n", *(input + i), add_out);
+    // kpu_get_output(&task, 0, &output, &size);
+    // size /= 4;
+    // printf("\noutput size: %ld\n", size);
+    // printf("[\n");
+    // for (size_t i=0; i < size; i++) {
+    //     printf("%f,\n", *(output + i));
     // }
+    // printf("]\n");
 
 
     printf("\nend\n");
