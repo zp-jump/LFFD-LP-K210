@@ -83,17 +83,7 @@ void free_all_bboxes(bbox_head_t *bboxes)
 
 /*
  * 提取预测框
- * 参数：
- *     score_layer
- *     bbox_layer
- *     layer_w 
- *     layer_h 
- *     rf_stride
- *     rf_start
- *     rf_size
- *     score_threshold
- *     lp_bbox
-*/
+ */
 uint get_bbox(kpu_output_t *kpu_output,
               float         score_threshold,
               bbox_head_t  *bboxes)
@@ -105,10 +95,10 @@ uint get_bbox(kpu_output_t *kpu_output,
         for (uint w=0; w < kpu_output->w; w++) {
             score = *(kpu_output->score_layer + h * kpu_output->w + w);
             if (score > score_threshold) {
-                x1 = (kpu_output->rf_start + w * kpu_output->rf_stride) + (*(kpu_output->bbox_layer + 0 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size;
-                y1 = (kpu_output->rf_start + h * kpu_output->rf_stride) + (*(kpu_output->bbox_layer + 1 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size;
-                x2 = (kpu_output->rf_start + w * kpu_output->rf_stride) + (*(kpu_output->bbox_layer + 3 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size;
-                y2 = (kpu_output->rf_start + h * kpu_output->rf_stride) + (*(kpu_output->bbox_layer + 4 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size;
+                x1 = (kpu_output->rf_start + w * kpu_output->rf_stride) - (*(kpu_output->bbox_layer + 0 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size/2.0f;
+                y1 = (kpu_output->rf_start + h * kpu_output->rf_stride) - (*(kpu_output->bbox_layer + 1 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size/2.0f;
+                x2 = (kpu_output->rf_start + w * kpu_output->rf_stride) - (*(kpu_output->bbox_layer + 2 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size/2.0f;
+                y2 = (kpu_output->rf_start + h * kpu_output->rf_stride) - (*(kpu_output->bbox_layer + 3 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size/2.0f;
         
                 bbox_t *next = new_bbox(x1, y1, x2, y2, score, NULL);
                 push_bbox(bboxes, next);
@@ -125,39 +115,6 @@ int get_lpbox(
     float      nms_value)
 {
     free_all_bboxes(lpbox->bboxes);
-
-    // 提取模型推理结果
-    float *score_layer0 = (lpbox->kpu_output)[0].score_layer;
-    size_t layer0_w     = (lpbox->kpu_output)[0].w;
-    size_t layer0_h     = (lpbox->kpu_output)[0].h;
-    // printf("addr is %ld\n", (uint64_t)lpbox->kpu_output[0].score_layer);
-    printf("[\n");
-    for (uint i=0; i < 2; i++) {
-        printf("[\n");
-        for (uint h=0; h < layer0_h; h++) {
-            printf("[ ");
-            for (uint w=0; w < layer0_w; w++) {
-                printf("%f, ", *(score_layer0 + i * (layer0_h * layer0_w) + h * layer0_w + w));
-            }
-            printf("],\n");
-        }
-        printf("],\n");
-    }
-    printf("]\n");
-
-    // printf("[\n");
-    // for (uint i = 0; i < 4; i++) {
-    //     printf("[\n");
-    //     for (uint h = 0; h < layer0_h; h++) {
-    //         printf("[ ");
-    //         for (uint w = 0; w < layer0_w; w++) {
-    //             printf("%f, ", *(bbox_layer0 + i * (layer0_h + layer0_h) + h * layer0_w + w));
-    //         }
-    //         printf("],\n");
-    //     }
-    //     printf("],\n");
-    // }
-    // printf("]\n");
 
     // 提取预测框
     for (size_t i=0; i < lpbox->output_branch; i++) {
