@@ -20,16 +20,23 @@
         printf("%s addr is %ld\n", #output, (uint64_t)(output)); \
         printf("[");                                             \
         for (size_t i=0; i < (size); i++) {                      \
-            if (i%5 < 0) {                                       \
+            if (i%5 == 0) {                                      \
                 printf("\n");                                    \
             }                                                    \
             printf("%f, ", *((output)+i));                       \
         }                                                        \
-        printf("\n]");                                           \
+        printf("\n]\n");                                         \ 
     }
 #else  // KPU_DEBUG
 #define PRINTF_KPU_OUTPUT(output, size)
 #endif // KPU_DEBUG
+
+const size_t layer0_w = 19, layer0_h = 14;
+const size_t layer1_w = 9 , layer1_h = 6;
+
+const size_t rf_stride0 = 16 , rf_stride1 = 32;
+const size_t rf_start0  = 15 , rf_start1  = 31;
+const size_t rf_size0   = 128, rf_size1   = 256;
 
 #define PLL0_OUTPUT_FREQ 800000000UL
 #define PLL1_OUTPUT_FREQ 400000000UL
@@ -87,39 +94,63 @@ int main()
         ;
     printf("\nmodel run OK\n");
 
+/*********************************************************************/
+    printf("lpbox init\n");
+    lpbox_t lpbox;
+    if (lpbox_new(&lpbox, 2) != 0) {
+        printf("lpbox new error/n");
+        while (1)
+            ;
+    }
+    (lpbox.kpu_output)[0].w         = layer0_w;
+    (lpbox.kpu_output)[0].h         = layer0_h;
+    (lpbox.kpu_output)[0].rf_size   = rf_size0;
+    (lpbox.kpu_output)[0].rf_start  = rf_start0;
+    (lpbox.kpu_output)[0].rf_stride = rf_stride0;
+
+    (lpbox.kpu_output)[1].w         = layer1_w;
+    (lpbox.kpu_output)[1].h         = layer1_h;
+    (lpbox.kpu_output)[1].rf_size   = rf_size1;
+    (lpbox.kpu_output)[1].rf_start  = rf_start1;
+    (lpbox.kpu_output)[1].rf_stride = rf_stride1;
+    printf("lpbox init end");
+/********************************************************************/
+
+    // 提取模型推理结果
     float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
 
-    // // 提取模型推理结果
     size_t score_layer0_size;
     kpu_get_output(&task, 0, &score_layer0, &score_layer0_size);
     score_layer0_size /= 4;
     printf("\nscore_layer0_size: %ld\n", score_layer0_size);
+    lpbox.kpu_output[0].score_layer = score_layer0;
     PRINTF_KPU_OUTPUT((score_layer0), (score_layer0_size));
 
     size_t bbox_layer0_size;
     kpu_get_output(&task, 1, &bbox_layer0, &bbox_layer0_size);
     bbox_layer0_size /= 4;
     printf("bbox_layer0_size: %ld\n", bbox_layer0_size);
+    (lpbox.kpu_output)[0].bbox_layer = bbox_layer0;
     PRINTF_KPU_OUTPUT((bbox_layer0), (bbox_layer0_size));
 
     size_t bbox_layer1_size;
     kpu_get_output(&task, 2, &bbox_layer1, &bbox_layer1_size);
     bbox_layer1_size /= 4;
     printf("bbox_layer1_size: %ld\n", bbox_layer1_size);
+    (lpbox.kpu_output)[1].bbox_layer = bbox_layer1;
     PRINTF_KPU_OUTPUT((bbox_layer1), (bbox_layer1_size));
 
     size_t score_layer1_size;
     kpu_get_output(&task, 3, &score_layer1, &score_layer1_size);
     score_layer1_size /= 4;
     printf("score_layer1_size: %ld\n", score_layer1_size);
+    (lpbox.kpu_output)[1].score_layer = score_layer1;
     PRINTF_KPU_OUTPUT((score_layer1), (score_layer1_size));
 
     // 提取预测框
-    bbox_head_t lpbox;
-    printf("\nLPbox run start\n");
-
-    // get_lpbox(score_layer0, bbox_layer0, score_layer1, bbox_layer1, &lpbox, 0.9, 0.5);
     
+    printf("\nLPbox run start\n");
+    get_lpbox(&lpbox, 0.8, 0.2);
     printf("\nLPbox run OK\n");
 
     // printf("bbox num：%d\n", lpbox.num);

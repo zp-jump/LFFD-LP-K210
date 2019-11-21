@@ -9,12 +9,6 @@
 #include "kpu.h"
 #include "lpbox.h"
 
-const size_t layer0_w = 19, layer0_h = 14;
-const size_t layer1_w = 9 , layer1_h = 6;
-
-const size_t rf_stride0 = 16 , rf_stride1 = 32;
-const size_t rf_start0  = 15 , rf_start1  = 31;
-const size_t rf_size0   = 128, rf_size1   = 256;
 
 bbox_t *new_bbox(float x1, float y1, float x2, float y2, float score, bbox_t *next)
 {
@@ -100,27 +94,21 @@ void free_all_bboxes(bbox_head_t *bboxes)
  *     score_threshold
  *     lp_bbox
 */
-uint get_bbox(float        *score_layer,
-              float        *bbox_layer,
-              const size_t  layer_w,
-              const size_t  layer_h,
-              const size_t  rf_stride,
-              const size_t  rf_start,
-              const size_t  rf_size,
+uint get_bbox(kpu_output_t *kpu_output,
               float         score_threshold,
               bbox_head_t  *bboxes)
 {
     float score, x1, x2, y1, y2;
-    uint layer_size = layer_w * layer_h;
+    uint layer_size = kpu_output->w * kpu_output->h;
 
-    for (uint h=0; h < layer_h; h++) {
-        for (uint w=0; w < layer_w; w++) {
-            score = *(score_layer + h * layer_w + w);
+    for (uint h = 0; h < kpu_output->h; h++) {
+        for (uint w=0; w < kpu_output->w; w++) {
+            score = *(kpu_output->score_layer + h * kpu_output->w + w);
             if (score > score_threshold) {
-                x1 = (rf_start + w * rf_stride) + (*(bbox_layer + 0 * layer_size + h * layer_w + w)) * rf_size;
-                y1 = (rf_start + h * rf_stride) + (*(bbox_layer + 1 * layer_size + h * layer_w + w)) * rf_size;
-                x2 = (rf_start + w * rf_stride) + (*(bbox_layer + 3 * layer_size + h * layer_w + w)) * rf_size;
-                y2 = (rf_start + h * rf_stride) + (*(bbox_layer + 4 * layer_size + h * layer_w + w)) * rf_size;
+                x1 = (kpu_output->rf_start + w * kpu_output->rf_stride) + (*(kpu_output->bbox_layer + 0 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size;
+                y1 = (kpu_output->rf_start + h * kpu_output->rf_stride) + (*(kpu_output->bbox_layer + 1 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size;
+                x2 = (kpu_output->rf_start + w * kpu_output->rf_stride) + (*(kpu_output->bbox_layer + 3 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size;
+                y2 = (kpu_output->rf_start + h * kpu_output->rf_stride) + (*(kpu_output->bbox_layer + 4 * layer_size + h * kpu_output->w + w)) * kpu_output->rf_size;
         
                 bbox_t *next = new_bbox(x1, y1, x2, y2, score, NULL);
                 push_bbox(bboxes, next);
@@ -131,63 +119,71 @@ uint get_bbox(float        *score_layer,
 }
 
 
-uint get_lpbox(
-    float        *score_layer0,
-    float        *bbox_layer0, 
-    float        *score_layer1,
-    float        *bbox_layer1, 
-    bbox_head_t  *lpbox, 
-    float         score_threshold, 
-    float         nms_value)
+int get_lpbox(
+    lpbox_t   *lpbox,
+    float      score_threshold, 
+    float      nms_value)
 {
-    // float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
-    free_all_bboxes(lpbox);
+    free_all_bboxes(lpbox->bboxes);
 
     // 提取模型推理结果
-    // size_t score_layer0_size;
-    // kpu_get_output(ctx, 0, &score_layer0, &score_layer0_size);
-    // printf("\nscore_layer0_size: %ld\n", score_layer0_size/4);
+    float *score_layer0 = (lpbox->kpu_output)[0].score_layer;
+    size_t layer0_w     = (lpbox->kpu_output)[0].w;
+    size_t layer0_h     = (lpbox->kpu_output)[0].h;
+    // printf("addr is %ld\n", (uint64_t)lpbox->kpu_output[0].score_layer);
     printf("[\n");
     for (uint i=0; i < 2; i++) {
         printf("[\n");
         for (uint h=0; h < layer0_h; h++) {
             printf("[ ");
             for (uint w=0; w < layer0_w; w++) {
-                printf("%f, ", *(score_layer0 + i * (layer0_h + layer0_h) + h * layer0_w + w));
+                printf("%f, ", *(score_layer0 + i * (layer0_h * layer0_w) + h * layer0_w + w));
             }
             printf("],\n");
         }
         printf("],\n");
     }
     printf("]\n");
-    // size_t bbox_layer0_size;
-    // kpu_get_output(ctx, 1, &bbox_layer0, &bbox_layer0_size);
-    // printf("bbox_layer0_size: %ld\n", bbox_layer0_size/4);    
-    printf("[\n");
-    for (uint i = 0; i < 4; i++) {
-        printf("[\n");
-        for (uint h = 0; h < layer0_h; h++) {
-            printf("[ ");
-            for (uint w = 0; w < layer0_w; w++) {
-                printf("%f, ", *(bbox_layer0 + i * (layer0_h + layer0_h) + h * layer0_w + w));
-            }
-            printf("],\n");
-        }
-        printf("],\n");
-    }
-    printf("]\n");
-    // size_t bbox_layer1_size;
-    // kpu_get_output(ctx, 2, &bbox_layer1, &bbox_layer1_size);
-    // printf("bbox_layer1_size: %ld\n", bbox_layer1_size/4);
-    // size_t score_layer1_size;
-    // kpu_get_output(ctx, 3, &score_layer1, &score_layer1_size);
-    // printf("score_layer1_size: %ld\n", score_layer1_size/4);
+
+    // printf("[\n");
+    // for (uint i = 0; i < 4; i++) {
+    //     printf("[\n");
+    //     for (uint h = 0; h < layer0_h; h++) {
+    //         printf("[ ");
+    //         for (uint w = 0; w < layer0_w; w++) {
+    //             printf("%f, ", *(bbox_layer0 + i * (layer0_h + layer0_h) + h * layer0_w + w));
+    //         }
+    //         printf("],\n");
+    //     }
+    //     printf("],\n");
+    // }
+    // printf("]\n");
 
     // 提取预测框
-    get_bbox(score_layer0, bbox_layer0, layer0_w, layer0_h,
-        rf_stride0, rf_start0, rf_size0, score_threshold, lpbox);
-    get_bbox(score_layer1, bbox_layer1, layer1_w, layer1_h,
-        rf_stride1, rf_start1, rf_size1, score_threshold, lpbox);
-
+    for (size_t i=0; i < lpbox->output_branch; i++) {
+        get_bbox((lpbox->kpu_output+i), score_threshold, lpbox->bboxes);
+    }
     return 0;
+}
+
+int lpbox_new(lpbox_t *lpbox, size_t output_branch)
+{
+    lpbox->output_branch = output_branch;
+    lpbox->kpu_output = (kpu_output_t *)malloc(lpbox->output_branch*sizeof(kpu_output_t));
+    if (lpbox->kpu_output == NULL) {
+        return -1;
+    }
+    lpbox->bboxes = (bbox_head_t *)malloc(sizeof(bbox_head_t));
+    if (lpbox->bboxes == NULL) {
+        return -1;
+    }
+    return 0;
+}
+
+void lpbox_free(lpbox_t *lpbox)
+{
+    lpbox->output_branch = 0;
+    free(lpbox->kpu_output);
+    free_all_bboxes(lpbox->bboxes);
+    free(lpbox->bboxes);
 }
