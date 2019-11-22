@@ -11,6 +11,8 @@
 #include "w25qxx.h"
 #include "iomem.h"
 #include "lpbox.h"
+#include "nt35310.h"
+#include "lcd.h"
 
 #define KPU_DEBUG 0
 
@@ -25,7 +27,7 @@
             }                                                    \
             printf("%f, ", *((output)+i));                       \
         }                                                        \
-        printf("\n]\n");                                         \ 
+        printf("]\n");                                           \ 
     }
 #else  // KPU_DEBUG
 #define PRINTF_KPU_OUTPUT(output, size)
@@ -43,20 +45,62 @@ const size_t rf_size0   = 128, rf_size1   = 256;
 
 extern const unsigned char gImage_image[] __attribute__((aligned(128)));
 
-// static uint16_t lcd_gram[320 * 240] __attribute__((aligned(32)));
+static uint16_t lcd_gram[320 * 240] __attribute__((aligned(32)));
 
 #define LPBOX_KMODEL_SIZE (556864)
 uint8_t* lpbox_model_data;
 
 kpu_model_context_t task;
 
-// uint8_t lpimage[24 * 94 * 3] __attribute__((aligned(32)));
+uint8_t lpimage[24 * 94 * 3] __attribute__((aligned(32)));
 
 volatile uint8_t g_ai_done_flag;
 
 static void ai_done(void* arg)
 {
     g_ai_done_flag = 1;
+}
+
+static void io_mux_init(void)
+{
+    /* Init DVP IO map and function settings */
+    fpioa_set_function(42, FUNC_CMOS_RST);
+    fpioa_set_function(44, FUNC_CMOS_PWDN);
+    fpioa_set_function(46, FUNC_CMOS_XCLK);
+    fpioa_set_function(43, FUNC_CMOS_VSYNC);
+    fpioa_set_function(45, FUNC_CMOS_HREF);
+    fpioa_set_function(47, FUNC_CMOS_PCLK);
+    fpioa_set_function(41, FUNC_SCCB_SCLK);
+    fpioa_set_function(40, FUNC_SCCB_SDA);
+
+    /* Init SPI IO map and function settings */
+    fpioa_set_function(38, FUNC_GPIOHS0 + DCX_GPIONUM);
+    fpioa_set_function(36, FUNC_SPI0_SS3);
+    fpioa_set_function(39, FUNC_SPI0_SCLK);
+    fpioa_set_function(37, FUNC_GPIOHS0 + RST_GPIONUM);
+
+    sysctl_set_spi0_dvp_data(1);
+}
+
+static void io_set_power(void)
+{
+    /* Set dvp and spi pin to 1.8V */
+    sysctl_set_power_mode(SYSCTL_POWER_BANK6, SYSCTL_POWER_V18);
+    sysctl_set_power_mode(SYSCTL_POWER_BANK7, SYSCTL_POWER_V18);
+}
+
+void rgb888_to_lcd(uint8_t* src, uint16_t* dest, size_t width, size_t height)
+{
+    size_t i, chn_size = width * height;
+    for (size_t i = 0; i < width * height; i++) {
+        uint8_t r = src[i];
+        uint8_t g = src[chn_size + i];
+        uint8_t b = src[chn_size * 2 + i];
+
+        uint16_t rgb = ((r & 0b11111000) << 8) | ((g & 0b11111100) << 3) | (b >> 3);
+        size_t d_i = i % 2 ? (i - 1) : (i + 1);
+        dest[d_i] = rgb;
+    }
 }
 
 int main()
@@ -67,8 +111,18 @@ int main()
     printf("\nPLL0 = %ld PLL1 = %ld\n", pll0, pll1);
     uarths_init();
 
+    io_mux_init();
+    io_set_power();
+
     plic_init();
 
+    // LCD init
+    printf("LCD init\n");
+    lcd_init();
+    lcd_set_direction(DIR_YX_RLDU);
+    printf("LCD end\n");
+
+    // 加载模型
     printf("flash init\n");
     w25qxx_init(3, 0);
     w25qxx_enable_quad_mode();
@@ -123,7 +177,7 @@ int main()
     kpu_get_output(&task, 0, &score_layer0, &score_layer0_size);
     score_layer0_size /= 4;
     printf("\nscore_layer0_size: %ld\n", score_layer0_size);
-    lpbox.kpu_output[0].score_layer = score_layer0;
+    (lpbox.kpu_output)[0].score_layer = score_layer0;
     PRINTF_KPU_OUTPUT((score_layer0), (score_layer0_size));
 
     size_t bbox_layer0_size;
@@ -155,8 +209,13 @@ int main()
 
     printf("bbox num：%d\n", lpbox.bboxes->num);
 
-    for (bbox_t *bbox=lpbox.bboxes->box; bbox != NULL; bbox = bbox->next) {
+    // 显示图片
+    rgb888_to_lcd(gImage_image, lcd_gram, 320, 240);
+    lcd_draw_picture(0, 0, 320, 240, lcd_gram);
+    
+    for (bbox_t* bbox = lpbox.bboxes->box; bbox != NULL; bbox = bbox->next) {
         printf("x1: %f, y1: %f, x2: %f, y2: %f, score: %f\n", bbox->x1, bbox->y1, bbox->x2, bbox->y2, bbox->score);
+        lcd_draw_rectangle(bbox->x1, bbox->y1, bbox->y1, bbox->y2, 2, GREEN);
     }
 
     printf("\nend\n");
