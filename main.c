@@ -215,7 +215,7 @@ int main()
     
     for (bbox_t* bbox = lpbox.bboxes->box; bbox != NULL; bbox = bbox->next) {
         printf("x1: %f, y1: %f, x2: %f, y2: %f, score: %f\n", bbox->x1, bbox->y1, bbox->x2, bbox->y2, bbox->score);
-        lcd_draw_rectangle(bbox->x1, bbox->y1, bbox->y1, bbox->y2, 2, GREEN);
+        lcd_draw_rectangle(bbox->x1, bbox->y1, bbox->x2, bbox->y2, 2, GREEN);
     }
 
     printf("\nend\n");
