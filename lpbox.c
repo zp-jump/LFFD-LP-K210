@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "kpu.h"
 #include "lpbox.h"
@@ -50,7 +51,7 @@ void push_bbox(bbox_head_t *bboxes, bbox_t *next)
     tmp->next = next;
 }
 
-void delete_box(bbox_head_t *bboxes, bbox_t *node)
+void delete_bbox(bbox_head_t *bboxes, bbox_t *node)
 {
     bbox_t *tmp = bboxes->box;
 
@@ -109,6 +110,34 @@ uint get_bbox(kpu_output_t *kpu_output,
 }
 
 
+/**
+ * NMS 
+ */
+
+float IoU(bbox_t *bbox1, bbox_t *bbox2)
+{
+    float w = fmin(bbox1->x1, bbox2->x1) - fmax(bbox1->x2, bbox2->x2);
+    float h = fmin(bbox1->y1, bbox2->y1) - fmax(bbox1->y2, bbox2->y2);
+    float inter = (w > 0 || h > 0)? 0 : w * h;
+    return inter / ((bbox1->x2 - bbox1->x1)*(bbox1->y2 - bbox1->y1)
+                  + (bbox2->x2 - bbox2->x1)*(bbox2->y2 - bbox2->y1)
+                  - inter);
+} 
+
+void NMS(bbox_head_t *bboxes, float nms_value)
+{
+    bbox_t *next, *tmp1, *tmp2;
+    for (tmp1=bboxes->box; tmp1 != NULL && tmp1->next != NULL; tmp1=tmp1->next) {
+        for (tmp2=tmp1->next; tmp2 != NULL; tmp2=next) {
+            next = tmp2->next;
+            if (IoU(tmp1, tmp2) > nms_value) {
+                delete_bbox(bboxes, tmp2);
+            }
+        }
+    }
+}
+
+
 int get_lpbox(
     lpbox_t   *lpbox,
     float      score_threshold, 
@@ -119,6 +148,10 @@ int get_lpbox(
     // 提取预测框
     for (size_t i=0; i < lpbox->output_branch; i++) {
         get_bbox((lpbox->kpu_output+i), score_threshold, lpbox->bboxes);
+    }
+    if (nms_value > 0) {
+        printf("no nms bboxes num: %d\n", lpbox->bboxes->num);
+        NMS(lpbox->bboxes, nms_value);
     }
     return 0;
 }

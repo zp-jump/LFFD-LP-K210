@@ -14,9 +14,8 @@
 #include "nt35310.h"
 #include "lcd.h"
 
-#define KPU_DEBUG 0
+#define KPU_DEBUG 1
 
-#if KPU_DEBUG
 #define PRINTF_KPU_OUTPUT(output, size)                          \
     {                                                            \
         printf("%s addr is %ld\n", #output, (uint64_t)(output)); \
@@ -29,9 +28,6 @@
         }                                                        \
         printf("]\n");                                           \ 
     }
-#else  // KPU_DEBUG
-#define PRINTF_KPU_OUTPUT(output, size) {printf("%s addr is %ld\n", #output, (uint64_t)(output));}
-#endif // KPU_DEBUG
 
 const size_t layer0_w = 19, layer0_h = 14;
 const size_t layer1_w = 9 , layer1_h = 6;
@@ -91,7 +87,7 @@ static void io_set_power(void)
 
 void rgb888_to_lcd(uint8_t* src, uint16_t* dest, size_t width, size_t height)
 {
-    size_t i, chn_size = width * height;
+    size_t chn_size = width * height;
     for (size_t i = 0; i < width * height; i++) {
         uint8_t r = src[i];
         uint8_t g = src[chn_size + i];
@@ -140,14 +136,6 @@ int main()
     }
     printf("\nmodel init OK\n");
 
-    // 运行模型
-    g_ai_done_flag = 0;
-    kpu_run_kmodel(&task, gImage_image, DMAC_CHANNEL5, ai_done, NULL);
-    printf("\nmodel run start\n");
-    while (!g_ai_done_flag)
-        ;
-    printf("\nmodel run OK\n");
-
 /*********************************************************************/
     printf("lpbox init\n");
     lpbox_t lpbox;
@@ -170,36 +158,52 @@ int main()
     printf("lpbox init end");
 /********************************************************************/
 
+    // 运行模型
+    g_ai_done_flag = 0;
+    kpu_run_kmodel(&task, gImage_image, DMAC_CHANNEL5, ai_done, NULL);
+    printf("\nmodel run start\n");
+    while (!g_ai_done_flag)
+        ;
+    printf("\nmodel run OK\n");
+
     // 提取模型推理结果
     float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
 
     size_t score_layer0_size;
     kpu_get_output(&task, 0, &score_layer0, &score_layer0_size);
+#if KPU_DEBUG
     score_layer0_size /= 4;
     printf("\nscore_layer0_size: %ld\n", score_layer0_size);
-    (lpbox.kpu_output)[0].score_layer = score_layer0;
     PRINTF_KPU_OUTPUT((score_layer0), (score_layer0_size));
+#endif
+    (lpbox.kpu_output)[0].score_layer = score_layer0;
 
     size_t bbox_layer0_size;
     kpu_get_output(&task, 1, &bbox_layer0, &bbox_layer0_size);
+#if KPU_DEBUG    
     bbox_layer0_size /= 4;
     printf("bbox_layer0_size: %ld\n", bbox_layer0_size);
-    (lpbox.kpu_output)[0].bbox_layer = bbox_layer0;
     PRINTF_KPU_OUTPUT((bbox_layer0), (bbox_layer0_size));
+#endif
+    (lpbox.kpu_output)[0].bbox_layer = bbox_layer0;
 
     size_t bbox_layer1_size;
     kpu_get_output(&task, 2, &bbox_layer1, &bbox_layer1_size);
+#if KPU_DEBUG    
     bbox_layer1_size /= 4;
     printf("bbox_layer1_size: %ld\n", bbox_layer1_size);
-    (lpbox.kpu_output)[1].bbox_layer = bbox_layer1;
     PRINTF_KPU_OUTPUT((bbox_layer1), (bbox_layer1_size));
+#endif    
+    (lpbox.kpu_output)[1].bbox_layer = bbox_layer1;
 
     size_t score_layer1_size;
     kpu_get_output(&task, 3, &score_layer1, &score_layer1_size);
+#if KPU_DEBUG    
     score_layer1_size /= 4;
     printf("score_layer1_size: %ld\n", score_layer1_size);
     (lpbox.kpu_output)[1].score_layer = score_layer1;
     PRINTF_KPU_OUTPUT((score_layer1), (score_layer1_size));
+#endif 
 
     // 提取预测框
     
@@ -215,7 +219,7 @@ int main()
     
     for (bbox_t* bbox = lpbox.bboxes->box; bbox != NULL; bbox = bbox->next) {
         printf("x1: %f, y1: %f, x2: %f, y2: %f, score: %f\n", bbox->x1, bbox->y1, bbox->x2, bbox->y2, bbox->score);
-        lcd_draw_rectangle(bbox->x1, bbox->y1, bbox->y1, bbox->y2, 2, GREEN);
+        lcd_draw_rectangle(bbox->x1, bbox->y1, bbox->x2, bbox->y2, 2, GREEN);
     }
 
     printf("\nend\n");
