@@ -14,7 +14,7 @@
 #include "nt35310.h"
 #include "lcd.h"
 
-#define KPU_DEBUG 1
+#define KPU_DEBUG 0
 
 #if KPU_DEBUG
 #define PRINTF_KPU_OUTPUT(output, size)                          \
@@ -30,7 +30,7 @@
         printf("]\n");                                           \ 
     }
 #else  // KPU_DEBUG
-#define PRINTF_KPU_OUTPUT(output, size)
+#define PRINTF_KPU_OUTPUT(output, size) {printf("%s addr is %ld\n", #output, (uint64_t)(output));}
 #endif // KPU_DEBUG
 
 const size_t layer0_w = 19, layer0_h = 14;
@@ -47,7 +47,7 @@ extern const unsigned char gImage_image[] __attribute__((aligned(128)));
 
 static uint16_t lcd_gram[320 * 240] __attribute__((aligned(32)));
 
-#define LPBOX_KMODEL_SIZE (557368)
+#define LPBOX_KMODEL_SIZE (556864)
 uint8_t* lpbox_model_data;
 
 kpu_model_context_t task;
