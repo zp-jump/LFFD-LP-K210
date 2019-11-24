@@ -149,43 +149,7 @@ int main()
     LOGI("model run OK");
 
     // 提取模型推理结果
-    float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
-
-    size_t score_layer0_size;
-    kpu_get_output(&task, 0, &score_layer0, &score_layer0_size);
-#if KPU_DEBUG
-    score_layer0_size /= 4;
-    LOGD("\nscore_layer0_size: %ld\n", score_layer0_size);
-    PRINTF_KPU_OUTPUT((score_layer0), (score_layer0_size));
-#endif
-    (lpbox.kpu_output)[0].score_layer = score_layer0;
-
-    size_t bbox_layer0_size;
-    kpu_get_output(&task, 1, &bbox_layer0, &bbox_layer0_size);
-#if KPU_DEBUG    
-    bbox_layer0_size /= 4;
-    LOGD("bbox_layer0_size: %ld\n", bbox_layer0_size);
-    PRINTF_KPU_OUTPUT((bbox_layer0), (bbox_layer0_size));
-#endif
-    (lpbox.kpu_output)[0].bbox_layer = bbox_layer0;
-
-    size_t bbox_layer1_size;
-    kpu_get_output(&task, 2, &bbox_layer1, &bbox_layer1_size);
-#if KPU_DEBUG    
-    bbox_layer1_size /= 4;
-    LOGD("bbox_layer1_size: %ld\n", bbox_layer1_size);
-    PRINTF_KPU_OUTPUT((bbox_layer1), (bbox_layer1_size));
-#endif    
-    (lpbox.kpu_output)[1].bbox_layer = bbox_layer1;
-
-    size_t score_layer1_size;
-    kpu_get_output(&task, 3, &score_layer1, &score_layer1_size);
-#if KPU_DEBUG    
-    score_layer1_size /= 4;
-    LOGD("score_layer1_size: %ld\n", score_layer1_size);
-    PRINTF_KPU_OUTPUT((score_layer1), (score_layer1_size));
-#endif 
-    (lpbox.kpu_output)[1].score_layer = score_layer1;
+    get_lpbox_kpu_output(&task, &lpbox);
 
     // 提取预测框
     

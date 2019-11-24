@@ -136,6 +136,54 @@ void NMS(bbox_head_t *bboxes, float nms_value)
     }
 }
 
+/**
+ * 提取 KPU 运算结果
+ * 说明：
+ *  理论上这段可以用循环替代，但ncc生成的模型的输出顺序不确定，无法用循环代替
+ *  请通过输出大小判断输出结果。
+ */ 
+int get_lpbox_kpu_output(kpu_model_context_t *ctx, lpbox_t *lpbox)
+{
+    float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
+
+    size_t score_layer0_size;
+    kpu_get_output(ctx, 0, &score_layer0, &score_layer0_size);
+#if KPU_DEBUG
+    score_layer0_size /= 4;
+    LOGD("\nscore_layer0_size: %ld\n", score_layer0_size);
+    PRINTF_KPU_OUTPUT((score_layer0), (score_layer0_size));
+#endif
+    (lpbox->kpu_output)[0].score_layer = score_layer0;
+
+    size_t bbox_layer0_size;
+    kpu_get_output(ctx, 1, &bbox_layer0, &bbox_layer0_size);
+#if KPU_DEBUG
+    bbox_layer0_size /= 4;
+    LOGD("bbox_layer0_size: %ld\n", bbox_layer0_size);
+    PRINTF_KPU_OUTPUT((bbox_layer0), (bbox_layer0_size));
+#endif
+    (lpbox->kpu_output)[0].bbox_layer = bbox_layer0;
+
+    size_t bbox_layer1_size;
+    kpu_get_output(ctx, 2, &bbox_layer1, &bbox_layer1_size);
+#if KPU_DEBUG
+    bbox_layer1_size /= 4;
+    LOGD("bbox_layer1_size: %ld\n", bbox_layer1_size);
+    PRINTF_KPU_OUTPUT((bbox_layer1), (bbox_layer1_size));
+#endif
+    (lpbox->kpu_output)[1].bbox_layer = bbox_layer1;
+
+    size_t score_layer1_size;
+    kpu_get_output(ctx, 3, &score_layer1, &score_layer1_size);
+#if KPU_DEBUG
+    score_layer1_size /= 4;
+    LOGD("score_layer1_size: %ld\n", score_layer1_size);
+    PRINTF_KPU_OUTPUT((score_layer1), (score_layer1_size));
+#endif
+    (lpbox->kpu_output)[1].score_layer = score_layer1;
+
+    return 0;
+}
 
 int get_lpbox(
     lpbox_t   *lpbox,

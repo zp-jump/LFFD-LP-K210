@@ -27,7 +27,8 @@
 #define LOG_INFO_FLAGE        (1 << 3)
 #define LOG_DEBUG_FLAGE       (1 << 4)
 
-#define LOG_FLAGE             (LOG_ERROR_FLAGE|LOG_WRAN_FLAGE|LOG_INFO_FLAGE|LOG_DEBUG_FLAGE)
+// #define LOG_FLAGE             (LOG_ERROR_FLAGE|LOG_WRAN_FLAGE|LOG_INFO_FLAGE|LOG_DEBUG_FLAGE)
+#define LOG_FLAGE              0
 
 #define LOG_PRINT(class, fmt, ...)\
     printf("%s"fmt"[line:%d] [%s]\n", class, ##__VA_ARGS__, __LINE__, __FILE__);
