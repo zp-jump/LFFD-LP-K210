@@ -2,9 +2,8 @@
  *  LPbox 模型程序，用于LPbox模型的结果解析。 
  */ 
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
+#include "config.h"
+
 #include <math.h>
 
 #include "kpu.h"
@@ -150,7 +149,7 @@ int get_lpbox(
         get_bbox((lpbox->kpu_output+i), score_threshold, lpbox->bboxes);
     }
     if (nms_value > 0) {
-        printf("no nms bboxes num: %d\n", lpbox->bboxes->num);
+        LOGD("no nms bboxes num: %d", lpbox->bboxes->num);
         NMS(lpbox->bboxes, nms_value);
     }
     return 0;

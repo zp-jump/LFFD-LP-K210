@@ -10,8 +10,6 @@
 #ifndef _LPBOX_H_
 #define _LPBOX_H_
 
-#include <kpu.h>
-
 typedef struct BBOX {
     float         x1;
     float         y1;
