@@ -121,7 +121,7 @@ int main()
 /*********************************************************************/
     LOGI("lpbox init");
     lpbox_t lpbox;
-    if (lpbox_new(&lpbox, 2) != 0) {
+    if (lpbox_new(&lpbox, 1) != 0) {
         LOGE("lpbox new error");
         while (1)
             ;
@@ -132,11 +132,6 @@ int main()
     (lpbox.kpu_output)[0].rf_start  = rf_start0;
     (lpbox.kpu_output)[0].rf_stride = rf_stride0;
 
-    (lpbox.kpu_output)[1].w         = layer1_w;
-    (lpbox.kpu_output)[1].h         = layer1_h;
-    (lpbox.kpu_output)[1].rf_size   = rf_size1;
-    (lpbox.kpu_output)[1].rf_start  = rf_start1;
-    (lpbox.kpu_output)[1].rf_stride = rf_stride1;
     LOGI("lpbox init end");
 /********************************************************************/
 
