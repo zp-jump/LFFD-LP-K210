@@ -24,7 +24,7 @@ extern const unsigned char gImage_image[] __attribute__((aligned(128)));
 
 static uint16_t lcd_gram[320 * 240] __attribute__((aligned(32)));
 
-#define LPBOX_KMODEL_SIZE (556864)
+#define LPBOX_KMODEL_SIZE (394280)
 uint8_t* lpbox_model_data;
 
 kpu_model_context_t task;
@@ -83,8 +83,8 @@ void rgb888_to_lcd(uint8_t* src, uint16_t* dest, size_t width, size_t height)
 int main()
 {
     // 配置时钟
-    long pll0 = sysctl_pll_set_freq(SYSCTL_PLL0, PLL0_OUTPUT_FREQ);
-    long pll1 = sysctl_pll_set_freq(SYSCTL_PLL1, PLL1_OUTPUT_FREQ);
+    uint32_t pll0 = sysctl_pll_set_freq(SYSCTL_PLL0, PLL0_OUTPUT_FREQ);
+    uint32_t pll1 = sysctl_pll_set_freq(SYSCTL_PLL1, PLL1_OUTPUT_FREQ);
     LOGI("PLL0 = %ld PLL1 = %ld", pll0, pll1);
     uarths_init();
 
