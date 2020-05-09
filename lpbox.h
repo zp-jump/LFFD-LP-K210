@@ -10,8 +10,6 @@
 #ifndef _LPBOX_H_
 #define _LPBOX_H_
 
-#include <kpu.h>
-
 typedef struct BBOX {
     float         x1;
     float         y1;
@@ -48,6 +46,7 @@ void push_bbox(bbox_head_t *bboxes, bbox_t* next);
 void delete_bbox(bbox_head_t *bboxes, bbox_t* node);
 void free_all_bboxes(bbox_head_t *bboxes);
 
+int get_lpbox_kpu_output(kpu_model_context_t *ctx, lpbox_t *lpbox);
 int get_lpbox(
     lpbox_t  *lpbox,
     float     score_threshold,

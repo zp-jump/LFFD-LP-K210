@@ -2,9 +2,9 @@
  *  LPbox 模型程序，用于LPbox模型的结果解析。 
  */ 
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
+#include "config.h"
+
+#include <math.h>
 
 #include "kpu.h"
 #include "lpbox.h"
@@ -50,7 +50,7 @@ void push_bbox(bbox_head_t *bboxes, bbox_t *next)
     tmp->next = next;
 }
 
-void delete_box(bbox_head_t *bboxes, bbox_t *node)
+void delete_bbox(bbox_head_t *bboxes, bbox_t *node)
 {
     bbox_t *tmp = bboxes->box;
 
@@ -109,6 +109,64 @@ uint get_bbox(kpu_output_t *kpu_output,
 }
 
 
+/**
+ * NMS 
+ */
+
+float IoU(bbox_t *bbox1, bbox_t *bbox2)
+{
+    float w = fmin(bbox1->x1, bbox2->x1) - fmax(bbox1->x2, bbox2->x2);
+    float h = fmin(bbox1->y1, bbox2->y1) - fmax(bbox1->y2, bbox2->y2);
+    float inter = (w > 0 || h > 0)? 0 : w * h;
+    return inter / ((bbox1->x2 - bbox1->x1)*(bbox1->y2 - bbox1->y1)
+                  + (bbox2->x2 - bbox2->x1)*(bbox2->y2 - bbox2->y1)
+                  - inter);
+} 
+
+void NMS(bbox_head_t *bboxes, float nms_value)
+{
+    bbox_t *next, *tmp1, *tmp2;
+    for (tmp1=bboxes->box; tmp1 != NULL && tmp1->next != NULL; tmp1=tmp1->next) {
+        for (tmp2=tmp1->next; tmp2 != NULL; tmp2=next) {
+            next = tmp2->next;
+            if (IoU(tmp1, tmp2) > nms_value) {
+                delete_bbox(bboxes, tmp2);
+            }
+        }
+    }
+}
+
+/**
+ * 提取 KPU 运算结果
+ * 说明：
+ *  理论上这段可以用循环替代，但ncc生成的模型的输出顺序不确定，无法用循环代替
+ *  请通过输出大小判断输出结果。
+ */ 
+int get_lpbox_kpu_output(kpu_model_context_t *ctx, lpbox_t *lpbox)
+{
+    float *score_layer0, *score_layer1, *bbox_layer0, *bbox_layer1;
+
+    size_t score_layer0_size;
+    kpu_get_output(ctx, 0, &score_layer0, &score_layer0_size);
+#if KPU_DEBUG
+    score_layer0_size /= 4;
+    LOGD("\nscore_layer0_size: %ld\n", score_layer0_size);
+    PRINTF_KPU_OUTPUT((score_layer0), (score_layer0_size));
+#endif
+    (lpbox->kpu_output)[0].score_layer = score_layer0;
+
+    size_t bbox_layer0_size;
+    kpu_get_output(ctx, 1, &bbox_layer0, &bbox_layer0_size);
+#if KPU_DEBUG
+    bbox_layer0_size /= 4;
+    LOGD("bbox_layer0_size: %ld\n", bbox_layer0_size);
+    PRINTF_KPU_OUTPUT((bbox_layer0), (bbox_layer0_size));
+#endif
+    (lpbox->kpu_output)[0].bbox_layer = bbox_layer0;
+
+    return 0;
+}
+
 int get_lpbox(
     lpbox_t   *lpbox,
     float      score_threshold, 
@@ -119,6 +177,10 @@ int get_lpbox(
     // 提取预测框
     for (size_t i=0; i < lpbox->output_branch; i++) {
         get_bbox((lpbox->kpu_output+i), score_threshold, lpbox->bboxes);
+    }
+    if (nms_value > 0) {
+        LOGD("no nms bboxes num: %d", lpbox->bboxes->num);
+        NMS(lpbox->bboxes, nms_value);
     }
     return 0;
 }
